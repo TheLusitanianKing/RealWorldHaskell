@@ -23,6 +23,7 @@ runall (firstelem:remainingelems) =
     do firstelem
        runall remainingelems
 
+main :: IO ()
 main = do str2action "Start of the program"
           printitall
           str2action "Done!"
