@@ -39,6 +39,7 @@ saferFileSize path = handle (\(SomeException _) -> return Nothing) $ do
     hClose h
     return (Just size)
 
+-- acquire-use-release cycle with bracket
 getFileSize :: FilePath -> IO (Maybe Integer)
 getFileSize path = handle (\(SomeException _) -> return Nothing) $
     bracket (openFile path ReadMode) hClose $ \h -> do
