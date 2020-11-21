@@ -1,3 +1,5 @@
+module ControlledVisit where
+
 import System.Directory (Permissions(..), getModificationTime, getPermissions)
 import Data.Time.Clock (UTCTime(..))
 import System.Directory (getDirectoryContents)
@@ -19,7 +21,7 @@ traverse order path = do
     contents <- mapM getInfo (path : map (path </>) names)
     liftM concat $ forM (order contents) $ \info -> do
       if isDirectory info && infoPath info /= path
-        then Main.traverse order (infoPath info)
+        then ControlledVisit.traverse order (infoPath info)
         else return [info]
         
 traverseVerbose :: ([Info] -> [Info]) -> FilePath -> IO [Info]
