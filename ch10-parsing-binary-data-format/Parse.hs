@@ -1,5 +1,6 @@
 import qualified Data.ByteString.Lazy as L
 import Data.Int (Int64(..))
+import Data.Word (Word8(..))
 
 data ParseState = ParseState {
     string :: L.ByteString,
@@ -36,3 +37,15 @@ modifyOffset initState newOffset =
     initState { offset = newOffset } -- record syntax allows this
     -- this creates a new ParseState value identical to initState
     -- but with its offset field set to whatever value we specify for newOffset
+
+parseByte :: Parse Word8
+parseByte =
+    getState ==> \initState ->
+        case L.uncons (string initState) of
+            Nothing -> bail "no more input"
+            Just (byte, remainder) ->
+                putState newState ==> \_ ->
+                    identity byte
+                where newState = initState { string = remainder,
+                                             offset = newOffset }
+                      newOffset = offset initState + 1
