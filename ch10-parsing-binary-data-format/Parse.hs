@@ -55,3 +55,6 @@ getState = Parse (\s -> Right (s, s))
 
 putState :: ParseState -> Parse ()
 putState s = Parse (\_ -> Right ((), s))
+
+bail :: String -> Parse a
+bail err = Parse $ \s -> Left $ "byte offset " ++ show (offset s) ++ ": " ++ err
