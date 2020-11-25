@@ -27,4 +27,12 @@ parse parser initState =
     case runParse parser (ParseState initState 0) of
         Left err          -> Left err
         Right (result, _) -> Right result
--- parse (identity "foo") undefined    GIVES    Right "foo" 
+-- parse (identity "foo") undefined
+-- GIVES:
+-- Right "foo" 
+
+modifyOffset :: ParseState -> Int64 -> ParseState
+modifyOffset initState newOffset =
+    initState { offset = newOffset } -- record syntax allows this
+    -- this creates a new ParseState value identical to initState
+    -- but with its offset field set to whatever value we specify for newOffset
