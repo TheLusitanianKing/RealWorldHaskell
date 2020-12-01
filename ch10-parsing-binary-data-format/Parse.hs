@@ -112,6 +112,7 @@ parseWhileVerbose p =
              | otherwise ->
                  identity []
 
+parseRawPGM :: Parse Greymap
 parseRawPGM =
     parseWhileWith w2c notWhite ==> \header -> skipSpaces ==>&
     assert (header == "P5") "invalid raw header" ==>&
