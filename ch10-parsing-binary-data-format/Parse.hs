@@ -1,6 +1,7 @@
 import qualified Data.ByteString.Lazy as L
 import Data.Int (Int64(..))
 import Data.Word (Word8(..))
+import Data.Char (chr)
 
 data ParseState = ParseState {
     string :: L.ByteString,
@@ -71,3 +72,36 @@ firstParser ==> secondParser = Parse chainedParser
 instance Functor Parse where
     fmap f parser = parser ==> \result ->
                         identity (f result)
+
+w2c :: Word8 -> Char
+w2c = chr . fromIntegral
+
+-- using functors for parsing
+parseChar :: Parse Char
+parseChar = w2c <$> parseByte
+
+peekByte :: Parse (Maybe Word8)
+peekByte = (fmap fst . L.uncons . string) <$> getState
+
+peekChar :: Parse (Maybe Char)
+peekChar = fmap w2c <$> peekByte
+
+parseWhile :: (Word8 -> Bool) -> Parse [Word8]
+parseWhile p = (fmap p <$> peekByte) ==> \mp ->
+               if mp == Just True
+               then parseByte ==> \b ->
+                    (b:) <$> parseWhile p
+               else identity []
+
+-- without functors:
+parseWhileVerbose :: (Word8 -> Bool) -> Parse [Word8]
+parseWhileVerbose p =
+    peekByte ==> \mc ->
+    case mc of
+      Nothing -> identity []
+      Just c | p c ->
+                 parseByte ==> \b ->
+                 parseWhileVerbose p ==> \bs ->
+                 identity (b:bs)
+             | otherwise ->
+                 identity []
