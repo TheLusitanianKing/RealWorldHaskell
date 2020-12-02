@@ -9,7 +9,8 @@ executable ch11-testing-quality-assurance
   main-is:             Main.hs
   other-modules:       QC,
                        Prettify2,
-                       Arbitrary
+                       Arbitrary,
+                       Run
   build-depends:       base >= 4.13 && < 4.14,
-                       QuickCheck >= 2.14.2
+                       QuickCheck >= 1.2.0
   default-language:    Haskell2010
