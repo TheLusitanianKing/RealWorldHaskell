@@ -9,3 +9,4 @@ main = do
     -- verboseCheck (prop_idempotent :: [Integer] -> Bool)
     -- using the more general Property type here
     quickCheck (prop_minimum :: [Integer] -> Property)
+    quickCheck prop_punctuate'
