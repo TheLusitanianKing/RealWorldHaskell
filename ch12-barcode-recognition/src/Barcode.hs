@@ -6,7 +6,7 @@ import Control.Monad (forM_)
 import Data.Char (digitToInt)
 import Data.Ix (Ix(..))
 import Data.List (foldl', group, sort, sortBy, tails)
-import Data.Maybe (catMaybes, listToMaybe)
+import Data.Maybe (mapMaybe, listToMaybe)
 import Data.Ratio (Ratio)
 import Data.Word (Word8)
 import System.Environment (getArgs)
@@ -239,3 +239,61 @@ candidateDigits rle
         left = chunksOf 4 . take 24 . drop 3 $ runLengths
         right = chunksOf 4 . take 24 . drop 32 $ runLengths
         runLengths = map fst rle
+
+type Map a = M.Map Digit [a]
+-- solution maps
+type DigitMap = Map Digit
+type ParityMap = Map (Parity Digit)
+
+updateMap :: Parity Digit       -- ^ new digit
+          -> Digit              -- ^ existing key
+          -> [Parity Digit]     -- ^ existing digit sequence
+          -> ParityMap          -- ^ map to update
+          -> ParityMap
+updateMap digit key seq = insertMap key (fromParity digit) (digit:seq)
+
+insertMap :: Digit -> Digit -> [a] -> Map a -> Map a
+insertMap key digit val m = val `seq` M.insert key' val m
+    where key' = (key + digit) `mod` 10
+
+useDigit :: ParityMap -> ParityMap -> Parity Digit -> ParityMap
+useDigit old new digit =
+    new `M.union` M.foldrWithKey (updateMap digit) M.empty old
+
+incorporateDigits :: ParityMap -> [Parity Digit] -> ParityMap
+incorporateDigits old = foldl' (useDigit old) M.empty
+
+finalDigits :: [[Parity Digit]] -> ParityMap
+finalDigits = foldl' incorporateDigits (M.singleton 0 [])
+            . mapEveryOther (map (fmap (*3)))
+
+firstDigit :: [Parity a] -> Digit
+firstDigit = snd
+           . head
+           . bestScores paritySRL
+           . runLengths
+           . map parityBit
+           . take 6
+  where parityBit (Even _) = Zero
+        parityBit (Odd _)  = One
+
+addFirstDigit :: ParityMap -> DigitMap
+addFirstDigit = M.foldrWithKey updateFirst M.empty
+
+updateFirst :: Digit -> [Parity Digit] -> DigitMap -> DigitMap
+updateFirst key seq = insertMap key digit (digit:renormalize qes)
+  where renormalize = mapEveryOther (`div` 3) . map fromParity
+        digit = firstDigit qes
+        qes = reverse seq
+
+buildMap :: [[Parity Digit]] -> DigitMap
+buildMap = M.mapKeys (10 -)
+         . addFirstDigit
+         . finalDigits
+
+solve :: [[Parity Digit]] -> [[Digit]]
+solve [] = []
+solve xs = mapMaybe (addCheckDigit m) checkDigits
+    where checkDigits = map fromParity (last xs)
+          m = buildMap (init xs)
+          addCheckDigit m k = (++[k]) <$> M.lookup k m
