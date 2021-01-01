@@ -1,16 +1,12 @@
 module Barcode where
 
 import Data.Array (Array(..), (!), bounds, elems, indices, ixmap, listArray)
-import Control.Applicative ((<$>))
-import Control.Monad (forM_)
 import Data.Char (digitToInt)
 import Data.Ix (Ix(..))
 import Data.List (foldl', group, sort, sortBy, tails)
 import Data.Maybe (mapMaybe, listToMaybe)
 import Data.Ratio (Ratio)
 import Data.Word (Word8)
-import System.Environment (getArgs)
-import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Map as M
 -- from CH10
 import Parse hiding (Greymap)
@@ -306,3 +302,14 @@ row :: (Ix a, Ix b) => b -> Array (a,b) c -> Array a c
 row j a = ixmap (l,u) project a
     where project i = (i,j)
           ((l,_), (u,_)) = bounds a
+
+findMatch :: [(Run, Bit)] -> Maybe [[Digit]]
+findMatch = listToMaybe
+          . filter (not . null)
+          . map (solve . candidateDigits)
+          . tails
+
+findEAN13 :: Pixmap -> Maybe [Digit]
+findEAN13 pixmap = withRow center pixmap (fmap head . findMatch)
+  where (_, (maxX, _)) = bounds pixmap
+        center = (maxX + 1) `div` 2
