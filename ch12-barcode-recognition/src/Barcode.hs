@@ -136,3 +136,106 @@ threshold n a = binary <$> a
           least    = fromIntegral $ choose (<) a
           greatest = fromIntegral $ choose (>) a
           choose f = foldA1 $ \x y -> if f x y then x else y
+
+-- run length encoding
+type Run = Int
+type RunLength a = [(Run, a)]
+
+runLength :: Eq a => [a] -> RunLength a
+runLength = map rle . group
+    where rle xs = (length xs, head xs)
+
+runLengths :: Eq a => [a] -> [Run]
+runLengths = map fst . runLength
+
+-- scaling run lengths and finding approximate matches
+type Score = Ratio Int
+
+scaleToOne :: [Run] -> [Score]
+scaleToOne xs = map divide xs
+    where divide d = fromIntegral d / divisor
+          divisor = fromIntegral (sum xs)
+-- A more compact alternative that "knows" we're using Ratio Int:
+-- scaleToOne xs = map (% sum xs) xs
+
+type ScoreTable = [[Score]]
+
+-- "SRL" means "scaled run length".
+asSRL :: [String] -> ScoreTable
+asSRL = map (scaleToOne . runLengths)
+
+leftOddSRL = asSRL leftOddList
+leftEvenSRL = asSRL leftEvenList
+rightSRL = asSRL rightList
+paritySRL = asSRL parityList
+
+distance :: [Score] -> [Score] -> Score
+distance a b = sum . map abs $ zipWith (-) a b
+
+bestScores :: ScoreTable -> [Run] -> [(Score, Digit)]
+bestScores srl ps = take 3 . sort $ scores
+    where scores = zip [distance d (scaleToOne ps) | d <- srl] digits
+          digits = [0..9]
+
+-- list comprehension
+-- our original
+-- zip [distance d (scaleToOne ps) | d <- srl] digits
+
+-- the same expression, expressed without a list comprehension
+-- zip (map (flip distance (scaleToOne ps)) srl) digits
+
+data Parity a = Even a | Odd a | None a
+                deriving (Show)
+
+fromParity :: Parity a -> a
+fromParity (Even a) = a
+fromParity (Odd a) = a
+fromParity (None a) = a
+
+parityMap :: (a -> b) -> Parity a -> Parity b
+parityMap f (Even a) = Even (f a)
+parityMap f (Odd a) = Odd (f a)
+parityMap f (None a) = None (f a)
+
+instance Functor Parity where
+    fmap = parityMap
+
+on :: (a -> a -> b) -> (c -> a) -> c -> c -> b
+on f g x y = g x `f` g y
+
+compareWithoutParity = compare `on` fromParity
+
+type Digit = Word8
+
+bestLeft :: [Run] -> [Parity (Score, Digit)]
+bestLeft ps = sortBy compareWithoutParity
+              $ map Odd (bestScores leftOddSRL ps) ++ map Even (bestScores leftEvenSRL ps)
+
+bestRight :: [Run] -> [Parity (Score, Digit)]
+bestRight = map None . bestScores rightSRL
+
+-- in the definition of the Parity type
+-- we could have used Haskell's record syntax to avoid the need to write a fromParity function
+data AltParity a = AltEven {fromAltParity :: a}
+                 | AltOdd  {fromAltParity :: a}
+                 | AltNone {fromAltParity :: a}
+                   deriving (Show)
+
+chunkWith :: ([a] -> ([a], [a])) -> [a] -> [[a]]
+chunkWith _ [] = []
+chunkWith f xs = let (h, t) = f xs
+                 in h : chunkWith f t
+
+chunksOf :: Int -> [a] -> [[a]]
+chunksOf n = chunkWith (splitAt n)
+
+candidateDigits :: RunLength Bit -> [[Parity Digit]]
+candidateDigits ((_, One):_) = []
+candidateDigits rle
+    | length rle < 59 = []
+    | any null match  = []
+    | otherwise       = map (map (fmap snd)) match
+  where match = map bestLeft left ++ map bestRight right
+        left = chunksOf 4 . take 24 . drop 3 $ runLengths
+        right = chunksOf 4 . take 24 . drop 32 $ runLengths
+        runLengths = map fst rle
