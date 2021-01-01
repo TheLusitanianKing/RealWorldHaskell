@@ -297,3 +297,12 @@ solve xs = mapMaybe (addCheckDigit m) checkDigits
     where checkDigits = map fromParity (last xs)
           m = buildMap (init xs)
           addCheckDigit m k = (++[k]) <$> M.lookup k m
+
+withRow :: Int -> Pixmap -> (RunLength Bit -> a) -> a
+withRow n greymap f = f . runLength . elems $ posterized
+    where posterized = threshold 0.4 . fmap luminance . row n $ greymap
+
+row :: (Ix a, Ix b) => b -> Array (a,b) c -> Array a c
+row j a = ixmap (l,u) project a
+    where project i = (i,j)
+          ((l,_), (u,_)) = bounds a
