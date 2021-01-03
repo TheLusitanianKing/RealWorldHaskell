@@ -14,3 +14,19 @@
 -- In fact, monads are ubiquitous in Haskell code precisely because they are so simple.
 -- Many common programming patterns have a monadic structure: passing around implicit data,
 -- or short-circuiting a chain of evaluations if one fails, to choose but two.
+
+(>>) :: m a -> m b -> m b
+a >> f = a >>= \_ -> f
+-- While (>>=) and return are the core functions of the Monad typeclass, it also defines two other functions.
+-- The first is (>>). Like (>>=), it performs chaining, but it ignores the value on the left.
+
+-- The second non-core Monad function is fail
+-- which takes an error message and does something to make the chain of functions fail
+fail :: String -> m a
+fail = error
+
+-- CH10 Parser would now be
+-- instance Monad Parse where
+--     return = identity
+--     (>>=) = (==>)
+--     fail = bail
