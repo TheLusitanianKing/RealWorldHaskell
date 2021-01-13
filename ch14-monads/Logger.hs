@@ -1,5 +1,7 @@
 module Logger (Logger, Log, runLogger, record) where
 
+import Control.Monad (ap)
+
 -- it's a pair, where the first element is the result of an action
 -- and the second is a list of messages logged while that action was run.
 -- we've wrapped the tuple in a newtype to make it a distinct type
@@ -19,13 +21,20 @@ instance Monad Logger where
                    (b, x) = execLogger n
                in Logger (b, w ++ x)
 
+-- now these 2 are mandatory when using monads (Applicative and Functor)
+instance Applicative Logger where
+    pure = return
+    (<*>) = ap
+instance Functor Logger where
+    fmap = liftM
+
 globToRegex :: String -> Logger String
 globToRegex cs =
     globToRegex' cs >>= \ds ->
     return ('^':ds)
 
 globToRegex' :: String -> Logger String
-globToRegex' "" = return ($)
+globToRegex' "" = return "$"
 globToRegex' ('?':cs) =
     record "any" >>
     globToRegex' cs >>= \ds ->
@@ -43,7 +52,7 @@ globToRegex' ('[':c:cs) =
     charClass cs >>= \ds ->
     return ("[" ++ c : ds)
 globToRegex' ('[':_) =
-    fail "unterminated character class"
+    error "unterminated character class"
 globToRegex' (c:cs) = liftM2 (++) (escape c) (globToRegex' cs)
 
 -- lifting
