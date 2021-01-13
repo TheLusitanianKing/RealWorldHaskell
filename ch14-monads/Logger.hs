@@ -1,6 +1,23 @@
 module Logger (Logger, Log, runLogger, record) where
 
+-- it's a pair, where the first element is the result of an action
+-- and the second is a list of messages logged while that action was run.
+-- we've wrapped the tuple in a newtype to make it a distinct type
+newtype Logger a = Logger { execLogger :: (a, Log) }
 type Log = [String]
+
+runLogger :: Logger a -> (a, Log)
+runLogger = execLogger
+
+record :: String -> Logger ()
+record s = Logger ((), [s])
+
+instance Monad Logger where
+    return a = Logger (a, [])
+    m >>= k  = let (a, w) = execLogger m
+                   n      = k a
+                   (b, x) = execLogger n
+               in Logger (b, w ++ x)
 
 globToRegex :: String -> Logger String
 globToRegex cs =
@@ -56,7 +73,3 @@ escape c
     | c `elem` regexChars = record "escape" >> return ['\\',c]
     | otherwise           = return [c]
   where regexChars = "\\+()^$.{}]|"
-
-runLogger :: Logger a -> (a, Log)
-
-record :: String -> Logger ()
