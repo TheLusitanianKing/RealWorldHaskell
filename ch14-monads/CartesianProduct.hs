@@ -25,3 +25,6 @@ blockyPlainReloaded xs ys =
                               return (x, y))
                          ys))
             xs)
+
+-- =<< is basically the flipped >>=
+wordCount = print . length . words =<< getContents
