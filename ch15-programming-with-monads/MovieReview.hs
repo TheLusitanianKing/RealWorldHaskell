@@ -1,4 +1,4 @@
-import Control.Monad (liftM3)
+import Control.Monad (ap, liftM, liftM3)
 
 data MovieReview = MovieReview {
     revTitle  :: String,
@@ -35,3 +35,10 @@ liftedReview alist =
     liftM3 MovieReview (lookup1 "title" alist)
                        (lookup1 "user" alist)
                        (lookup1 "review" alist)
+
+-- generalized lifting
+apReview alist =
+    MovieReview `liftM` lookup1 "title" alist
+                   `ap` lookup1 "user" alist
+                   `ap` lookup1 "review" alist
+-- ap is the monadic equivalent to the ($) operator
