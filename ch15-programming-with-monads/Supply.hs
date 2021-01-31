@@ -25,8 +25,8 @@ showTwo = do
   b <- next
   return (show "a: " ++ show a ++ ", b: " ++ show b)
 
-showTwo_class :: (Show s, Monad m, MonadSupply s m) => m String
-showTwo_class = do
+showTwoClass :: (Show s, Monad m, MonadSupply s m) => m String
+showTwoClass = do
   a <- next
   b <- next
   return (show "a: " ++ show a ++ ", b: " ++ show b)
